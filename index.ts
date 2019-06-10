@@ -1,27 +1,25 @@
-import * as _ from 'lodash'
 import Koa from 'koa'
-import Router from 'koa-router'
+import json from 'koa-json'
+import removeTrailingSlashes from 'koa-remove-trailing-slashes'
+import bodyParser from 'koa-bodyparser'
 import { createHandyClient } from 'handy-redis'
+import { createClient } from './data'
+import buildRouter from './server/router'
 
-const redisKey = {
-  serverStart: 'server-start',
-}
-
-const db = createHandyClient()
-
+const port = process.env.BAGGING_SWIFTLY_PORT || 3000
 const app = new Koa()
-const router = new Router()
+const data = createClient(createHandyClient())
+const router = buildRouter(data)
 
-db.set(redisKey.serverStart, new Date().valueOf().toString())
+data.startTime.set(new Date())
 
-router.get('/', (ctx) => (ctx.body = 'Hello world'))
+app
+  .use(removeTrailingSlashes())
+  .use(bodyParser())
+  .use(json({ pretty: false, param: 'pretty' }))
+  .use(router.routes())
+  .use(router.allowedMethods)
 
-app.use(router.routes()).use(router.allowedMethods)
-
-app.listen(3000, async () => {
-  const startMillis = await db.get(redisKey.serverStart)
-  console.log(
-    'server up',
-    startMillis && new Date(Number.parseInt(startMillis))
-  )
+app.listen(port, async () => {
+  console.log(`server up on port ${port} at ${await data.startTime.get()}`)
 })
