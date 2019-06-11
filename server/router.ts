@@ -5,14 +5,6 @@ import { DataClient } from '../data'
 import Bag from '../bag/Bag'
 import koa = require('koa')
 
-declare module 'koa' {
-  namespace Application {
-    interface Request {
-      body: any
-    }
-  }
-}
-
 type RouterFactory = (data: DataClient) => Router
 
 function addIndex(router: Router) {
