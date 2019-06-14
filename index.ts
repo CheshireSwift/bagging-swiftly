@@ -3,6 +3,7 @@ import { createHandyClient } from 'handy-redis';
 import buildApp from './server/app';
 
 const data = createClient(createHandyClient())
+data.startTime.set(new Date())
 
 const port = process.env.BAGGING_SWIFTLY_PORT || 3000
 
