@@ -1,63 +1,55 @@
-import Router from 'koa-router'
+import router, { Router } from 'koa-joi-router'
 import _ from 'lodash'
 import uuid from 'uuid/v4'
 import { DataClient } from '../data'
 import Bag from '../bag/Bag'
-import koa = require('koa')
+import * as koa from 'koa'
 
 type RouterFactory = (data: DataClient) => Router
 
-function addIndex(router: Router) {
-  return router.get('/', (ctx) => {
-    ctx.body =
-      '<html><body><ul>' +
-      _(router.stack)
-        .map('path')
-        .map((path) => `<li><a href=".${path}">${path}</a></li>`)
-        .join('') +
-      '</ul></body></html>'
-  })
+const addToBag = (data: DataClient) => async (ctx: koa.Context) => {
+  const bagObj = await data.bag(ctx.params.id).get();
+  if (!bagObj) {
+    ctx.body = 404;
+    return;
+  }
+  const request = ctx.request as koa.Request & {
+    body: any;
+  };
+  const bag = Bag.fromJsonable(bagObj).add(request.body);
+  data.bag(ctx.params.id).set(bag.toJsonable());
+  ctx.redirect('../');
+}
+
+const getBag = (data: DataClient) => async (ctx: koa.Context) => {
+  const bagObj = await data.bag(ctx.params.id).get();
+  if (!bagObj) {
+    ctx.body = 404;
+    return;
+  }
+  ctx.body = bagObj;
+}
+
+const createBag = (data: DataClient) => async (ctx: koa.Context) => {
+  const bagId = uuid();
+  const bag = Bag.withContents();
+  await data.bag(bagId).set(bag);
+  ctx.body = { bagId, bag: bag.toJsonable() };
 }
 
 const buildBagRouter: RouterFactory = (data) =>
-  addIndex(
-    new Router()
-      .post('/create', async (ctx) => {
-        const bagId = uuid()
-        const bag = Bag.withContents()
-        await data.bag(bagId).set(bag)
-        ctx.body = { bagId, bag: bag.toJsonable() }
-      })
-      .get('/:id', async (ctx) => {
-        const bagObj = await data.bag(ctx.params.id).get()
-        if (!bagObj) {
-          ctx.body = 404
-          return
-        }
+  router()
+    .post('/create', createBag(data))
+    .get('/:id', getBag(data))
+    .post('/:id/add', addToBag(data))
 
-        ctx.body = bagObj
-      })
-      .post('/:id/add', async (ctx) => {
-        const bagObj = await data.bag(ctx.params.id).get()
-        if (!bagObj) {
-          ctx.body = 404
-          return
-        }
 
-        const request = ctx.request as koa.Request & { body: any }
-        const bag = Bag.fromJsonable(bagObj).add(request.body)
-        data.bag(ctx.params.id).set(bag.toJsonable())
-        ctx.redirect('../')
-      })
-  )
-
-export function buildRouter(data: DataClient): Router {
+export function buildRouter(data: DataClient) {
   const bagRouter = buildBagRouter(data)
 
-  return new Router().use(
+  return router().use(
     '/bag',
-    bagRouter.routes(),
-    bagRouter.allowedMethods()
+    bagRouter.middleware(),
   )
 }
 
