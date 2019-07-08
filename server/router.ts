@@ -55,7 +55,6 @@ const buildBagRouter: RouterFactory = (data) =>
     .post('/:id/add', addToBag(data))
     .post('/:id/draw', drawFromBag(data))
 
-
 export function buildRouter(data: DataClient) {
   const bagRouter = buildBagRouter(data)
 

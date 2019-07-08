@@ -39,10 +39,13 @@ describe('the app API', () => {
           .expect('Location', '../')
       }
 
-      contents = async () => (await request(server).get(`/bag/${this.bagId}`)
+      get = async () => (await request(server).get(`/bag/${this.bagId}`)
         .expect(200)
         .expect('Content-Type', /json/))
-        .body.contents
+        .body
+
+      contents = async () => (await this.get()).contents
+      removed = async () => (await this.get()).removed
 
       drawItem = async () => (await request(server).post(`/bag/${this.bagId}/draw`)
         .expect(200)
@@ -54,15 +57,24 @@ describe('the app API', () => {
       const bag = new BagClient()
       await bag.create()
       await bag.addItem()
-      expect(await bag.contents()).toEqual([{ type: 'chip' }])
+
+      const { contents, removed } = await bag.get()
+
+      expect(contents).toEqual([item])
+      expect(removed).toEqual([])
     })
 
     test('creating a bag, adding to it and pulling the item back out', async () => {
       const bag = new BagClient()
       await bag.create()
       await bag.addItem()
-      expect(await bag.drawItem()).toEqual({ type: 'chip' })
-      expect(await bag.contents()).toEqual([])
+
+      expect(await bag.drawItem()).toEqual(item)
+
+      const { contents, removed } = await bag.get()
+
+      expect(contents).toEqual([])
+      expect(removed).toEqual([item])
     })
   })
 })
