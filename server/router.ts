@@ -37,11 +37,23 @@ const createBag = (data: DataClient) => async (ctx: koa.Context) => {
   ctx.body = { bagId, bag: bag.toJsonable() };
 }
 
+const drawFromBag = (data: DataClient) => async (ctx: koa.Context) => {
+  const bagObj = await data.bag(ctx.params.id).get();
+  if (!bagObj) {
+    ctx.body = 404;
+    return;
+  }
+  const [bag, item] = Bag.fromJsonable(bagObj).pull()
+  data.bag(ctx.params.id).set(bag.toJsonable());
+  ctx.body = item
+}
+
 const buildBagRouter: RouterFactory = (data) =>
   router()
     .post('/create', createBag(data))
     .get('/:id', getBag(data))
     .post('/:id/add', addToBag(data))
+    .post('/:id/draw', drawFromBag(data))
 
 
 export function buildRouter(data: DataClient) {
