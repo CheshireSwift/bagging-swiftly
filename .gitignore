@@ -90,3 +90,6 @@ typings/
 # Redis files
 dump.rdb
 root
+
+# Build output
+dist/

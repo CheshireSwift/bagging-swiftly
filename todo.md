@@ -1,6 +1,6 @@
 # Todo
 
-- [ ] Static files
-- [ ] Frontend
-- [ ] Playing cards quick pop
+- [x] Static files
+- [~] Frontend
+- [ ] Playing cards quick populate
 - [ ] Reset (removed -> contents)

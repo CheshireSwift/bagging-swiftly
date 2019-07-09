@@ -1,4 +1,5 @@
 import Koa from 'koa';
+import serve from 'koa-static'
 import bodyParser from 'koa-bodyparser';
 import json from 'koa-json';
 import removeTrailingSlashes from 'koa-remove-trailing-slashes';
@@ -13,6 +14,7 @@ export function buildApp(data: DataClient): Koa {
     .use(removeTrailingSlashes())
     .use(bodyParser())
     .use(json({ pretty: false, param: 'pretty' }))
+    .use(serve('dist'))
     .use(router.middleware())
 
   return app

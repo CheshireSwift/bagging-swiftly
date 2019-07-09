@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node .",
-    "dev": "concurrently -c cyan,green -n serve,tests npm:watch-serve npm:watch-tests",
+    "start": "npm run build-client && ts-node .",
+    "build-client": "parcel build client/index.html",
+    "dev": "concurrently -c cyan,green,red -n serve,tests,front npm:watch-serve npm:watch-tests npm:watch-front",
+    "watch-front": "parcel client/index.html",
     "watch-serve": "nodemon -x ts-node -e ts -i '**/*.spec.*' .",
     "watch-tests": "jest --watch",
     "test": "jest"
@@ -17,6 +19,7 @@
     "@types/koa-bodyparser": "^4.3.0",
     "@types/koa-joi-router": "^5.2.2",
     "@types/koa-json": "^2.0.18",
+    "@types/koa-static": "^4.0.1",
     "@types/lodash": "^4.14.134",
     "@types/redis": "^2.8.13",
     "@types/uuid": "^3.4.4",
@@ -26,7 +29,9 @@
     "koa-joi-router": "^6.0.0",
     "koa-json": "^2.0.2",
     "koa-remove-trailing-slashes": "^2.0.0",
+    "koa-static": "^5.0.0",
     "lodash": "^4.17.11",
+    "parcel-bundler": "^1.12.3",
     "ts-node": "^8.2.0",
     "typescript": "^3.5.1",
     "uuid": "^3.3.2"
