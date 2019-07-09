@@ -6,9 +6,9 @@
   "scripts": {
     "start": "npm run build-client && ts-node .",
     "build-client": "parcel build client/index.html",
-    "dev": "concurrently -c cyan,green,red -n serve,tests,front npm:watch-serve npm:watch-tests npm:watch-front",
+    "dev": "concurrently -c cyan,green,magenta -n serve,tests,front npm:watch-serve npm:watch-tests npm:watch-front",
     "watch-front": "parcel client/index.html",
-    "watch-serve": "nodemon -x ts-node -e ts -i '**/*.spec.*' .",
+    "watch-serve": "nodemon -x ts-node -e js,jsx,ts,tsx -i '**/*.spec.*' .",
     "watch-tests": "jest --watch",
     "test": "jest"
   },
@@ -31,13 +31,18 @@
     "koa-remove-trailing-slashes": "^2.0.0",
     "koa-static": "^5.0.0",
     "lodash": "^4.17.11",
+    "lodash.product": "^18.9.19",
     "parcel-bundler": "^1.12.3",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
     "ts-node": "^8.2.0",
     "typescript": "^3.5.1",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/jest": "^24.0.13",
+    "@types/react": "^16.8.23",
+    "@types/react-dom": "^16.8.4",
     "@types/supertest": "^2.0.7",
     "concurrently": "^4.1.0",
     "jest": "^24.8.0",

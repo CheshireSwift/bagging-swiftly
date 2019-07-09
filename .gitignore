@@ -93,3 +93,6 @@ root
 
 # Build output
 dist/
+
+# logging
+nohup.*

@@ -1,10 +1,10 @@
-import Koa from 'koa';
+import Koa from 'koa'
+import bodyParser from 'koa-bodyparser'
+import json from 'koa-json'
+import removeTrailingSlashes from 'koa-remove-trailing-slashes'
 import serve from 'koa-static'
-import bodyParser from 'koa-bodyparser';
-import json from 'koa-json';
-import removeTrailingSlashes from 'koa-remove-trailing-slashes';
-import buildRouter from './router';
-import { DataClient } from '../data';
+import { DataClient } from '../data'
+import buildRouter from './router'
 
 export function buildApp(data: DataClient): Koa {
   const app = new Koa()
@@ -12,7 +12,13 @@ export function buildApp(data: DataClient): Koa {
 
   app
     .use(removeTrailingSlashes())
-    .use(bodyParser())
+    .use(
+      bodyParser({
+        onerror: (err, ctx) => {
+          console.error('sadness!', err)
+        },
+      })
+    )
     .use(json({ pretty: false, param: 'pretty' }))
     .use(serve('dist'))
     .use(router.middleware())

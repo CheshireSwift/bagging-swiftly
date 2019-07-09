@@ -1,7 +1,7 @@
-import { Server } from 'http';
-import request from 'supertest';
-import { createClient } from "./data";
-import buildApp from './server/app';
+import { Server } from 'http'
+import request from 'supertest'
+import { createClient } from './data'
+import buildApp from './server/app'
 
 describe('the app API', () => {
   let mockStore: Record<string, string>
@@ -11,7 +11,10 @@ describe('the app API', () => {
     mockStore = {}
     const redis = {
       get: jest.fn().mockImplementation((key) => mockStore[key]),
-      set: jest.fn().mockImplementation((key, value) => { mockStore[key] = value; return 'OK' }),
+      set: jest.fn().mockImplementation((key, value) => {
+        mockStore[key] = value
+        return 'OK'
+      }),
     }
 
     const client = createClient(redis as any)
@@ -23,10 +26,11 @@ describe('the app API', () => {
     const item = { type: 'chip' }
 
     class BagClient {
-      bagId: string = '';
+      bagId: string = ''
 
       create = async () => {
-        const createResponse = await request(server).post('/bag/create')
+        const createResponse = await request(server)
+          .post('/bag/create')
           .expect(200)
           .expect('Content-Type', /json/)
 
@@ -34,23 +38,27 @@ describe('the app API', () => {
       }
 
       addItem = async () => {
-        await request(server).post(`/bag/${this.bagId}/add`).send(item)
-          .expect(302)
-          .expect('Location', '../')
+        await request(server)
+          .post(`/bag/${this.bagId}/add`)
+          .send(item)
+          .expect(200)
+          .expect('Content-Type', /json/)
       }
 
-      get = async () => (await request(server).get(`/bag/${this.bagId}`)
-        .expect(200)
-        .expect('Content-Type', /json/))
-        .body
+      get = async () =>
+        (await request(server)
+          .get(`/bag/${this.bagId}`)
+          .expect(200)
+          .expect('Content-Type', /json/)).body
 
       contents = async () => (await this.get()).contents
       removed = async () => (await this.get()).removed
 
-      drawItem = async () => (await request(server).post(`/bag/${this.bagId}/draw`)
-        .expect(200)
-        .expect('Content-Type', /json/))
-        .body
+      drawItem = async () =>
+        (await request(server)
+          .post(`/bag/${this.bagId}/draw`)
+          .expect(200)
+          .expect('Content-Type', /json/)).body
     }
 
     test('creating a bag, adding to it and checking the contents', async () => {
