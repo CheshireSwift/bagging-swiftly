@@ -12,13 +12,7 @@ export function buildApp(data: DataClient): Koa {
 
   app
     .use(removeTrailingSlashes())
-    .use(
-      bodyParser({
-        onerror: (err, ctx) => {
-          console.error('sadness!', err)
-        },
-      })
-    )
+    .use(bodyParser())
     .use(json({ pretty: false, param: 'pretty' }))
     .use(serve('dist'))
     .use(router.middleware())

@@ -1,6 +1,7 @@
 import { IHandyRedis } from 'handy-redis'
 import RedisKeys from './RedisKeys'
 import { SerializableBag } from '../bag/Bag'
+import AsyncLock from 'async-lock'
 
 type RedisField<T> = {
   get: () => Promise<T | null>
@@ -13,6 +14,7 @@ type Converter<T> = {
 }
 
 export interface DataClient {
+  withLockOnBag<T>(bagId: string, handler: (bag: SerializableBag<T> | null) => (void | Promise<void>)): Promise<void>;
   bag<T>(bagId: string): RedisField<SerializableBag<T>>
   startTime: RedisField<Date>
 }
@@ -37,9 +39,14 @@ const redisFieldAccessor = (redis: IHandyRedis) => <T>(
 })
 
 export const createClient = (redis: IHandyRedis): DataClient => {
+  const lock = new AsyncLock()
   const accessor = redisFieldAccessor(redis)
+  const bagAccessor = (bagId: string) => accessor(RedisKeys.bagPrefix + bagId, converters.bag)
   return {
     startTime: accessor(RedisKeys.serverStartTime, converters.date),
-    bag: (bagId) => accessor(RedisKeys.bagPrefix + bagId, converters.bag),
+    bag: bagAccessor,
+    withLockOnBag: (bagId, handler) => lock.acquire(bagId, async () =>
+      handler(await bagAccessor(bagId).get())
+    )
   }
 }

@@ -1,7 +1,6 @@
-import RedisKeys from './RedisKeys'
-
-import { createClient, DataClient } from '.'
-import Bag from '../bag/Bag'
+import { createClient, DataClient } from '.';
+import Bag from '../bag/Bag';
+import RedisKeys from './RedisKeys';
 
 describe('the data layer', () => {
   let client: DataClient
@@ -53,6 +52,55 @@ describe('the data layer', () => {
 
       expect(redis.get).toHaveBeenCalledWith(RedisKeys.bagPrefix + bagId)
       expect(result).toEqual(bagObj)
+    })
+  })
+
+  describe('bag lock', () => {
+    const bagId = 'id-here'
+    it('executes the lock block, passing the locked bag in', async () => {
+      const outerBag = Bag.withContents(1, 2, 3).toJsonable()
+      redis.get.mockResolvedValue(JSON.stringify(outerBag))
+
+      await client.withLockOnBag(bagId, (innerBag) => {
+        expect(innerBag).toEqual(outerBag)
+      })
+    })
+
+    // Not worrying about multiple server instances rn
+    // it.skip('creates a lock key for the lifetime of the lock block', async () => {
+    //   await client.withLockOnBag(bagId, () => {
+    //     expect(redis.setnx).toHaveBeenCalledWith(RedisKeys.lockPrefix + bagId)
+    //   })
+    //   expect(redis.del).toHaveBeenCalledWith(RedisKeys.lockPrefix + bagId)
+    // })
+
+    const eventLoopRun = () => new Promise<void>((r) => { setImmediate(r) })
+
+    it('prevents one block from executing until another is finished', async () => {
+      let release: () => void = jest.fn()
+
+      let secondHandlerRun = false
+
+      const firstRun = client.withLockOnBag(bagId, () => {
+        expect(secondHandlerRun).toBe(false)
+        return new Promise<void>((resolve) => {
+          release = resolve
+        })
+      })
+
+      const secondRun = client.withLockOnBag(bagId, () => {
+        secondHandlerRun = true
+      })
+
+      await eventLoopRun()
+
+      expect(secondHandlerRun).toBe(false)
+
+      release()
+      await firstRun
+      await secondRun
+
+      expect(secondHandlerRun).toBe(true)
     })
   })
 })
