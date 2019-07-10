@@ -14,8 +14,10 @@ type Converter<T> = {
 }
 
 export interface DataClient {
-  withLockOnBag<T>(bagId: string, handler: (bag: SerializableBag<T> | null) => (void | Promise<void>)): Promise<void>;
-  bag<T>(bagId: string): RedisField<SerializableBag<T>>
+  withLockOnBag<T>(
+    bagId: string,
+    handler: (bag: RedisField<SerializableBag<T>>) => (void | Promise<void>)
+  ): Promise<void>;
   startTime: RedisField<Date>
 }
 
@@ -44,9 +46,6 @@ export const createClient = (redis: IHandyRedis): DataClient => {
   const bagAccessor = (bagId: string) => accessor(RedisKeys.bagPrefix + bagId, converters.bag)
   return {
     startTime: accessor(RedisKeys.serverStartTime, converters.date),
-    bag: bagAccessor,
-    withLockOnBag: (bagId, handler) => lock.acquire(bagId, async () =>
-      handler(await bagAccessor(bagId).get())
-    )
+    withLockOnBag: (bagId, handler) => lock.acquire(bagId, () => handler(bagAccessor(bagId)))
   }
 }

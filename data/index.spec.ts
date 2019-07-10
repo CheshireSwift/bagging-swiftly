@@ -36,33 +36,37 @@ describe('the data layer', () => {
     const bagId = 'id-here'
 
     it('saves', async () => {
-      const bagObj = Bag.withContents(1, 2, 3).toJsonable()
-      await client.bag(bagId).set(bagObj)
-      expect(redis.set).toHaveBeenCalledWith(
-        RedisKeys.bagPrefix + bagId,
-        JSON.stringify(bagObj)
-      )
+      await client.withLockOnBag(bagId, async bagAccessor => {
+        const bagObj = Bag.withContents(1, 2, 3).toJsonable()
+        await bagAccessor.set(bagObj)
+        expect(redis.set).toHaveBeenCalledWith(
+          RedisKeys.bagPrefix + bagId,
+          JSON.stringify(bagObj)
+        )
+      })
     })
 
     it('can be read', async () => {
-      const bagObj = Bag.withContents(1, 2, 3).toJsonable()
-      redis.get.mockResolvedValue(JSON.stringify(bagObj))
+      await client.withLockOnBag(bagId, async bagAccessor => {
+        const bagObj = Bag.withContents(1, 2, 3).toJsonable()
+        redis.get.mockResolvedValue(JSON.stringify(bagObj))
 
-      const result = await client.bag(bagId).get()
+        const result = await bagAccessor.get()
 
-      expect(redis.get).toHaveBeenCalledWith(RedisKeys.bagPrefix + bagId)
-      expect(result).toEqual(bagObj)
+        expect(redis.get).toHaveBeenCalledWith(RedisKeys.bagPrefix + bagId)
+        expect(result).toEqual(bagObj)
+      })
     })
   })
 
   describe('bag lock', () => {
     const bagId = 'id-here'
     it('executes the lock block, passing the locked bag in', async () => {
-      const outerBag = Bag.withContents(1, 2, 3).toJsonable()
-      redis.get.mockResolvedValue(JSON.stringify(outerBag))
+      const bag = Bag.withContents(1, 2, 3).toJsonable()
+      redis.get.mockResolvedValue(JSON.stringify(bag))
 
-      await client.withLockOnBag(bagId, (innerBag) => {
-        expect(innerBag).toEqual(outerBag)
+      await client.withLockOnBag(bagId, async (bagAccessor) => {
+        expect(await bagAccessor.get()).toEqual(bag)
       })
     })
 

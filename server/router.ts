@@ -12,46 +12,52 @@ import { DataClient } from '../data'
 
 type RouterFactory = (data: DataClient) => Router
 
-const addToBag = (data: DataClient) => async (ctx: koa.Context) => {
-  const bagObj = await data.bag(ctx.params.id).get()
-  if (!bagObj) {
-    return
-  }
+const addToBag = (data: DataClient) => async (ctx: koa.Context) =>
+  data.withLockOnBag(ctx.params.id, async bagAccessor => {
+    const bagObj = await bagAccessor.get()
+    if (!bagObj) {
+      return
+    }
 
-  const request = ctx.request as koa.Request & {
-    body: any
-  }
-  const bag = Bag.fromJsonable(bagObj).add(request.body)
-  data.bag(ctx.params.id).set(bag.toJsonable())
-  ctx.body = bag.toJsonable() as AddResponse<any>
-}
+    const request = ctx.request as koa.Request & {
+      body: any
+    }
+    const bag = Bag.fromJsonable(bagObj).add(request.body)
+    const newBagObj = bag.toJsonable()
+    await bagAccessor.set(newBagObj)
+    ctx.body = newBagObj as AddResponse<any>
+  })
 
-const getBag = (data: DataClient) => async (ctx: koa.Context) => {
-  const bagObj = await data.bag(ctx.params.id).get()
-  if (!bagObj) {
-    return
-  }
+const getBag = (data: DataClient) => async (ctx: koa.Context) =>
+  data.withLockOnBag(ctx.params.id, async bagAccessor => {
+    const bagObj = await bagAccessor.get()
+    if (!bagObj) {
+      return
+    }
 
-  ctx.body = bagObj as GetResponse<any>
-}
+    ctx.body = bagObj as GetResponse<any>
+  })
 
 const createBag = (data: DataClient) => async (ctx: koa.Context) => {
   const bagId = uuid()
   const bag = Bag.withContents()
-  await data.bag(bagId).set(bag)
+  await data.withLockOnBag(bagId, async bagAccessor => {
+    await bagAccessor.set(bag)
+  })
   ctx.body = { bagId, bag: bag.toJsonable() } as CreateResponse<any>
 }
 
-const drawFromBag = (data: DataClient) => async (ctx: koa.Context) => {
-  const bagObj = await data.bag(ctx.params.id).get()
-  if (!bagObj) {
-    return
-  }
+const drawFromBag = (data: DataClient) => async (ctx: koa.Context) =>
+  data.withLockOnBag(ctx.params.id, async bagAccessor => {
+    const bagObj = await bagAccessor.get()
+    if (!bagObj) {
+      return
+    }
 
-  const [bag, item] = Bag.fromJsonable(bagObj).pull()
-  data.bag(ctx.params.id).set(bag.toJsonable())
-  ctx.body = item as ItemResponse<typeof item>
-}
+    const [bag, item] = Bag.fromJsonable(bagObj).pull()
+    bagAccessor.set(bag.toJsonable())
+    ctx.body = item as ItemResponse<typeof item>
+  })
 
 const buildBagRouter: RouterFactory = (data) =>
   router()
