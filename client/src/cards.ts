@@ -30,7 +30,6 @@ export const joker: Card = [JokerRank, JokerSuit]
 
 export const ranks = _.range(2, 15) as Rank[]
 export const suits = _.range(1, 5) as Suit[]
-export const deck = _.concat(product(ranks, suits), [joker, joker])
-console.log(deck)
+export const allCards = _.concat(product(ranks, suits), [joker, joker])
 
 export type Deck = SerializableBag<Card>

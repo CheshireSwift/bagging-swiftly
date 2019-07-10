@@ -1,11 +1,13 @@
-import * as React from 'react'
+import _ from 'lodash'
+import React from 'react'
 import { addItemToBag, createAndReturnBag, getBag } from './apiClient'
-import { Card, Deck, joker } from './cards'
+import { Card, Deck, allCards, joker } from './cards'
 
-const createBagAndRedirect = () =>
-  createAndReturnBag<Card>().then(
-    ({ bagId }) => (window.location.search = '?deck=' + bagId)
-  )
+const createBagAndRedirect = async () => {
+  const { bagId } = await createAndReturnBag<Card>()
+  await Promise.all(_.map(allCards, (card) => addItemToBag(bagId, card)))
+  window.location.search = '?deck=' + bagId
+}
 
 export const App = () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -19,12 +21,19 @@ export const App = () => {
     }
   }, [])
 
+  if (!deckId) {
+    return 'Creating deck...'
+  }
+
+  if (!deck) {
+    return 'No deck loaded'
+  }
+
   return (
     <div>
+      {deck.contents.length}
       <pre>{JSON.stringify(deck, null, 2)}</pre>
-      <button onClick={() => addItemToBag(deckId as string, joker)}>
-        Add card
-      </button>
+      <button onClick={() => addItemToBag(deckId, joker)}>Add card</button>
     </div>
   )
 }
