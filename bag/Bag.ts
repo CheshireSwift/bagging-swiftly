@@ -37,17 +37,19 @@ class Bag<T> {
     const picked = this.sample()
     const newBag = picked
       ? new Bag<T>(
-          _.without(this.contents, picked),
-          _.concat(this.removed, [picked]),
-          this.sampler
-        )
+        _.without(this.contents, picked),
+        _.concat(this.removed, [picked]),
+        this.sampler
+      )
       : this
     return [newBag, picked]
   }
 
   pullAndReplace = this.sample
 
-  add = (newItem: T) =>
-    new Bag([...this.contents, newItem], this.removed, this.sampler)
+  add = (newItem: T) => this.addMultiple([newItem])
+
+  addMultiple = (newItems: T[]) =>
+    new Bag([...this.contents, ...newItems], this.removed, this.sampler)
 }
 export default Bag

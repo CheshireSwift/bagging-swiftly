@@ -1,39 +1,83 @@
-import _ from 'lodash'
 import React from 'react'
-import { addItemToBag, createAndReturnBag, getBag } from './apiClient'
-import { Card, Deck, allCards, joker } from './cards'
+import { ChipBag, startingChips } from '../chips'
+import { addItemToBag, createAndReturnBag } from './apiClient'
+import { useBag } from './bagHooks'
+import { allCards, Deck } from './cards'
+import { CardRender } from './CardRender'
+import { ChipRender } from './ChipRender'
 
-const createBagAndRedirect = async () => {
-  const { bagId } = await createAndReturnBag<Card>()
-  await Promise.all(_.map(allCards, (card) => addItemToBag(bagId, card)))
-  window.location.search = '?deck=' + bagId
+const createBagContaining = async (contents: unknown[]) => {
+  const { bagId } = await createAndReturnBag()
+  await addItemToBag(bagId, contents)
+  return bagId
 }
 
-export const App = () => {
+const newPlayArea = async () => {
+  const [deckId, bagId] = await Promise.all([
+    createBagContaining(allCards),
+    createBagContaining(startingChips),
+  ])
+
+  window.location.search = `?deck=${deckId}&bag=${bagId}`
+}
+
+type DataError = { error: string }
+type RemoteData = { deckId: string; bagId: string; deck: Deck; bag: ChipBag }
+
+const useBagAndDeck = (): DataError | RemoteData => {
   const urlParams = new URLSearchParams(window.location.search)
+
   const deckId = urlParams.get('deck')
-  const [deck, setDeck] = React.useState<Deck>()
-  React.useEffect(() => {
-    if (deckId) {
-      getBag<Card>(deckId).then(setDeck)
-    } else {
-      createBagAndRedirect()
-    }
-  }, [])
+  const bagId = urlParams.get('bag')
 
-  if (!deckId) {
-    return 'Creating deck...'
+  const deck: Deck | undefined = useBag(deckId)
+  const bag: ChipBag | undefined = useBag(bagId)
+
+  if (!deckId || !deck) {
+    return { error: 'No deck loaded' }
   }
 
-  if (!deck) {
-    return 'No deck loaded'
+  if (!bagId || !bag) {
+    return { error: 'No bag loaded' }
   }
 
+  return { deckId, bagId, deck, bag }
+}
+
+const isDataError = (
+  remoteData: DataError | RemoteData
+): remoteData is DataError => !!(remoteData as any).error
+
+const MainElement = () => {
+  const remoteData = useBagAndDeck()
+  if (isDataError(remoteData)) {
+    return <>{remoteData.error}</>
+  }
+
+  const { deck, bag } = remoteData
+  return (
+    <>
+      {deck.contents.length}
+      {bag.contents.length}
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        {deck.contents.map((card) => (
+          <CardRender key={card.rank + '_' + card.suit} card={card} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        {bag.contents.map((chip, i) => (
+          <ChipRender key={i} chip={chip} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+export const App: React.FunctionComponent<{}> = () => {
   return (
     <div>
-      {deck.contents.length}
-      <pre>{JSON.stringify(deck, null, 2)}</pre>
-      <button onClick={() => addItemToBag(deckId, joker)}>Add card</button>
+      <MainElement />
+      <button onClick={newPlayArea}>New</button>
     </div>
   )
 }

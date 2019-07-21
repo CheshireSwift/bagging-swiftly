@@ -54,4 +54,9 @@ describe('a bag', () => {
     const bag = Bag.withContents(1)
     expect(bag.add(2).contents).toEqual([1, 2])
   })
+
+  it('can have multiple items added', () => {
+    const bag = Bag.withContents(1)
+    expect(bag.addMultiple([2, 3]).contents).toEqual([1, 2, 3])
+  })
 })

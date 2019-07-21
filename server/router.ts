@@ -22,8 +22,9 @@ const addToBag = (data: DataClient) => async (ctx: koa.Context) =>
     const request = ctx.request as koa.Request & {
       body: any
     }
-    const bag = Bag.fromJsonable(bagObj).add(request.body)
-    const newBagObj = bag.toJsonable()
+    const bag = Bag.fromJsonable(bagObj)
+    const newBag = (Array.isArray(request.body) ? bag.addMultiple : bag.add)(request.body)
+    const newBagObj = newBag.toJsonable()
     await bagAccessor.set(newBagObj)
     ctx.body = newBagObj as AddResponse<any>
   })

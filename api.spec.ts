@@ -2,6 +2,7 @@ import { Server } from 'http'
 import request from 'supertest'
 import { createClient } from './data'
 import buildApp from './server/app'
+import { text } from 'body-parser';
 
 describe('the app API', () => {
   let mockStore: Record<string, string>
@@ -45,6 +46,14 @@ describe('the app API', () => {
           .expect('Content-Type', /json/)
       }
 
+      addItems = async (items: any[]) => {
+        await request(server)
+          .post(`/bag/${this.bagId}/add`)
+          .send(items)
+          .expect(200)
+          .expect('Content-Type', /json/)
+      }
+
       get = async () =>
         (await request(server)
           .get(`/bag/${this.bagId}`)
@@ -83,6 +92,17 @@ describe('the app API', () => {
 
       expect(contents).toEqual([])
       expect(removed).toEqual([item])
+    })
+
+    test('creating a bag, adding multiple items, and checking the contents', async () => {
+      const items = [{ type: 'chip' }, { type: 'card' }, { type: 'pocket lint' }]
+      const bag = new BagClient()
+      await bag.create()
+      await bag.addItems(items)
+
+      const { contents } = await bag.get()
+
+      expect(contents).toEqual(items)
     })
   })
 })
