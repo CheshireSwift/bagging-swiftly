@@ -1,82 +1,73 @@
 import React from 'react'
-import { ChipBag, startingChips } from '../chips'
-import { addItemToBag, createAndReturnBag } from './apiClient'
-import { useBag } from './bagHooks'
-import { allCards, Deck } from './cards'
-import { CardRender } from './CardRender'
+import { ChipBag, startingChips, Chip } from '../chips'
+import {
+  addItemToBag,
+  createAndReturnBag,
+  drawItemFromBag,
+  getBag,
+} from './apiClient'
 import { ChipRender } from './ChipRender'
+import Bag from '../../bag/Bag'
+import _ from 'lodash'
 
-const createBagContaining = async (contents: unknown[]) => {
+const createBagContaining = async (contents: Chip[]) => {
   const { bagId } = await createAndReturnBag()
   await addItemToBag(bagId, contents)
   return bagId
 }
 
 const newPlayArea = async () => {
-  const [deckId, bagId] = await Promise.all([
-    createBagContaining(allCards),
-    createBagContaining(startingChips),
-  ])
-
-  window.location.search = `?deck=${deckId}&bag=${bagId}`
-}
-
-type DataError = { error: string }
-type RemoteData = { deckId: string; bagId: string; deck: Deck; bag: ChipBag }
-
-const useBagAndDeck = (): DataError | RemoteData => {
-  const urlParams = new URLSearchParams(window.location.search)
-
-  const deckId = urlParams.get('deck')
-  const bagId = urlParams.get('bag')
-
-  const deck: Deck | undefined = useBag(deckId)
-  const bag: ChipBag | undefined = useBag(bagId)
-
-  if (!deckId || !deck) {
-    return { error: 'No deck loaded' }
-  }
-
-  if (!bagId || !bag) {
-    return { error: 'No bag loaded' }
-  }
-
-  return { deckId, bagId, deck, bag }
-}
-
-const isDataError = (
-  remoteData: DataError | RemoteData
-): remoteData is DataError => !!(remoteData as any).error
-
-const MainElement = () => {
-  const remoteData = useBagAndDeck()
-  if (isDataError(remoteData)) {
-    return <>{remoteData.error}</>
-  }
-
-  const { deck, bag } = remoteData
-  return (
-    <>
-      {deck.contents.length}
-      {bag.contents.length}
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        {deck.contents.map((card) => (
-          <CardRender key={card.rank + '_' + card.suit} card={card} />
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        {bag.contents.map((chip, i) => (
-          <ChipRender key={i} chip={chip} />
-        ))}
-      </div>
-    </>
-  )
+  const bagId = await createBagContaining(startingChips)
+  window.location.search = `?bag=${bagId}`
 }
 
 export const App: React.FunctionComponent<{}> = () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  const bagId = urlParams.get('bag')
+
+  const [bag, setBag] = React.useState<ChipBag>()
+  const updateBagWithSerialized = _.flow([Bag.fromJsonable, setBag])
+  React.useEffect(() => {
+    if (bagId) {
+      getBag(bagId).then(updateBagWithSerialized)
+    }
+  }, [bagId])
+
+  const body =
+    !bagId || !bag ? (
+      <>No bag loaded</>
+    ) : (
+      <>
+        <div style={{ fontSize: 36 }}>💰 {bag.contents.length}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', padding: 16 }}>
+          {bag.removed.map((chip, i) => (
+            <ChipRender key={i} chip={chip} />
+          ))}
+        </div>
+        <button
+          onClick={() => {
+            drawItemFromBag(bagId).then(({ bag }) =>
+              updateBagWithSerialized(bag)
+            )
+          }}
+        >
+          Draw
+        </button>
+        <button
+          onClick={() =>
+            addItemToBag(bagId, { color: 'legend' }).then(
+              updateBagWithSerialized
+            )
+          }
+        >
+          Add Legend
+        </button>
+      </>
+    )
+
   return (
     <div>
-      <MainElement />
+      {body}
       <button onClick={newPlayArea}>New</button>
     </div>
   )

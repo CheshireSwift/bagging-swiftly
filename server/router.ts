@@ -57,7 +57,7 @@ const drawFromBag = (data: DataClient) => async (ctx: koa.Context) =>
 
     const [bag, item] = Bag.fromJsonable(bagObj).pull()
     bagAccessor.set(bag.toJsonable())
-    ctx.body = item as ItemResponse<typeof item>
+    ctx.body = { item, bag } as ItemResponse<typeof item>
   })
 
 const buildBagRouter: RouterFactory = (data) =>

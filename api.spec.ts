@@ -86,7 +86,7 @@ describe('the app API', () => {
       await bag.create()
       await bag.addItem()
 
-      expect(await bag.drawItem()).toEqual(item)
+      expect((await bag.drawItem()).item).toEqual(item)
 
       const { contents, removed } = await bag.get()
 
